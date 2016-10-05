@@ -175,7 +175,7 @@ impl LayoutTree {
     }
 
     /// Add a new view container with the given WlcView to the active container
-    pub fn add_view(&mut self, view: WlcView) -> CommandResult {
+    pub fn add_view(&mut self, view: WlcView) -> Result<Uuid, TreeError> {
         if let Some(mut active_ix) = self.active_container {
             let parent_ix = self.tree.parent_of(active_ix)
                 .expect("Active container had no parent");
@@ -187,12 +187,15 @@ impl LayoutTree {
                 active_ix = try!(self.tree.parent_of(active_ix)
                                  .map_err(|err| TreeError::PetGraph(err)));
             }
+            let container = Container::new_view(view);
+            let uuid = container.get_id();
             let view_ix = self.tree.add_child(active_ix,
-                                              Container::new_view(view),
+                                              container,
                                               true);
             self.tree.set_child_pos(view_ix, prev_pos);
             self.validate();
-            return self.set_active_node(view_ix)
+            try!(self.set_active_node(view_ix));
+            return Ok(uuid)
         }
         self.validate();
         Err(TreeError::NoActiveContainer)
@@ -457,6 +460,8 @@ pub mod tests {
     use super::*;
     use rustwlc::*;
 
+    use uuid::Uuid;
+
     /// Makes a very basic tree.
     /// There is only one output,
     /// Two workspaces,
@@ -641,11 +646,13 @@ pub mod tests {
         assert_eq!(tree.tree.children_of(parent_container).len(), 1);
         let old_active_view = tree.active_ix_of(ContainerType::View)
             .expect("Active container was not a view");
-        tree.add_view(WlcView::root()).unwrap();
+        let uuid_of_added: Uuid = tree.add_view(WlcView::root()).unwrap();
         assert_eq!(tree.tree.children_of(parent_container).len(), 2);
         assert!(! (old_active_view == tree.active_ix_of(ContainerType::View).unwrap()));
-        tree.remove_view(&WlcView::root())
-            .expect("Could not remove view");
+        let added_container_ix = tree.tree.lookup_id(uuid_of_added)
+            .expect("Id of just added container doesn't match with a container!");
+        tree.remove_container(added_container_ix);
+        println!("{:#?}", tree);
         assert_eq!(tree.active_ix_of(ContainerType::View).unwrap(), old_active_view);
         assert_eq!(tree.tree.children_of(parent_container).len(), 1);
         for _ in 1..2 {
