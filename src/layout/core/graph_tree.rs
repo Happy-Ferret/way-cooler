@@ -653,16 +653,6 @@ impl InnerTree {
         }
     }
 
-    /// Determines if a Node index is the last one in the adjacency list
-    /// (and so will be moved in a removal)
-    pub fn is_last_ix(&self, node_ix: NodeIndex) -> bool {
-        if self.graph.node_count() == 0 {
-            false
-        } else {
-            self.graph.node_count() - 1 == node_ix.index()
-        }
-    }
-
     /// Modifies the ancestor paths so that the only complete path from the root
     /// goes to this node.
     ///
