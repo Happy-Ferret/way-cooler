@@ -450,6 +450,11 @@ impl LayoutTree {
                 panic!("Found node that was on the active path and floating!");
             }
         }
+
+        // ensure that the active container is valid
+        if let Some(node_ix) = self.active_container {
+            assert!(self.tree.get(node_ix).is_some());
+        }
     }
 
     #[cfg(not(debug_assertions))]
